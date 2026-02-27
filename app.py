@@ -66,3 +66,22 @@ if line > 0:
         st.warning("⚠️ SOLO FLEX")
     else:
         st.error("❌ EVITAR")
+st.divider()
+
+st.subheader("3) Predicción PickScore")
+
+if player:
+    base = linea
+
+    # Modelo simple inicial
+    tendencia = base * 0.15
+    confianza = clamp(50 + tendencia, 0, 100)
+
+    st.metric("Confianza del Pick (%)", round(confianza, 2))
+
+    if confianza >= 65:
+        st.success("🔥 Pick fuerte")
+    elif confianza >= 50:
+        st.warning("⚠️ Pick medio")
+    else:
+        st.error("❌ Pick débil")
