@@ -23,7 +23,9 @@ with c2:
 st.subheader("2) Datos Manuales")
 
 avg10 = st.number_input("Promedio últimos 10 juegos", value=0.0, step=0.1)
-hits5 = st.slider("Veces que pasó la línea en últimos 5", 0, 5, 0)
+
+over5 = st.slider("Veces que pasó la línea en últimos 5", 0, 5, 0)
+
 minutes = st.number_input("Minutos esperados", value=30)
 
 role = st.selectbox("Rol del jugador", ["Estrella", "Titular normal", "Jugador de rol"])
