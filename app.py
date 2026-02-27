@@ -247,7 +247,20 @@ prob = clamp(50 + (score - 50) * 0.35, 0, 100)
 st.write(f"**Jugador detectado:** {full_name}")
 st.metric("PickScore (0-100)", round(score, 1))
 st.metric("Probabilidad estimada", f"{round(prob, 1)}%")
+st.divider()
+st.subheader("📊 Panel PRO (Datos Automáticos)")
 
+c1, c2, c3 = st.columns(3)
+c1.metric("Promedio últimos N", f"{avg10:.2f}")
+c2.metric("Hits últimos 5", f"{over5}/5")
+c3.metric("Minutos estimados", f"{minutes_est:.0f}")
+
+c4, c5, c6 = st.columns(3)
+c4.metric("Edge (avg - line)", f"{edge:.2f}")
+c5.metric("Edge norm (0-100)", f"{edge_norm:.1f}")
+c6.metric("Temporada", season)
+
+st.caption("Este panel explica por qué el PickScore sube o baja.")
 # Decision label
 if score >= 70:
     st.success("✅ PICK BUENO")
