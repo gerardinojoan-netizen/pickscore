@@ -36,7 +36,7 @@ if line > 0:
     edge = (avg10 - line) if direction == "MORE" else (line - avg10)
 
     edge_score = clamp((edge / max(1, line)) * 50 + 50, 0, 100)
-    hits_score = (hits5 / 5) * 100
+    hits_score = (over5 / 5) * 100
     minutes_score = clamp((minutes - 20) * 3, 0, 100)
 
     role_bonus = 15 if role == "Estrella" else 8 if role == "Titular normal" else 0
