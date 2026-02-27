@@ -71,7 +71,7 @@ st.divider()
 st.subheader("3) Predicción PickScore")
 
 if player:
-    base = linea
+    base = line
 
     # Modelo simple inicial
     tendencia = base * 0.15
