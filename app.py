@@ -1,144 +1,270 @@
 import streamlit as st
-import math
+import pandas as pd
+from datetime import datetime
 
+from nba_api.stats.static import players as nba_players
+from nba_api.stats.endpoints import playergamelog
+
+
+# ---------------------------
+# UI
+# ---------------------------
 st.set_page_config(page_title="PickScore", layout="centered")
 st.title("PickScore — Sistema Personal")
 st.caption("Herramienta de apoyo. No garantiza ganancias.")
 
-def clamp(x, a, b):
+
+# ---------------------------
+# Helpers
+# ---------------------------
+def clamp(x: float, a: float, b: float) -> float:
     return max(a, min(b, x))
 
+
+STAT_MAP = {
+    "Points": ("PTS", "Puntos"),
+    "Rebounds": ("REB", "Rebotes"),
+    "Assists": ("AST", "Asistencias"),
+    "PRA": (None, "PRA"),
+}
+
+TEAM_ABBR_TO_ID = {
+    # NBA API usa IDs de team en otros endpoints,
+    # aquí no lo necesitamos pero lo dejo por si después agregas “vs equipo”
+}
+
+
+@st.cache_data(ttl=60 * 30, show_spinner=False)
+def find_player_id_by_name(name: str) -> tuple[int | None, str | None]:
+    """
+    Devuelve (player_id, full_name) usando búsqueda “fuzzy”.
+    """
+    name = (name or "").strip()
+    if not name:
+        return None, None
+
+    # 1) fuzzy search de nba_api (suele funcionar bien)
+    matches = nba_players.find_players_by_full_name(name)
+
+    if not matches:
+        # 2) intenta “contains” por si el usuario pone solo apellido
+        all_players = nba_players.get_players()
+        name_low = name.lower()
+        matches = [p for p in all_players if name_low in p["full_name"].lower()]
+
+    if not matches:
+        return None, None
+
+    # Prioriza active si existe
+    active = [p for p in matches if p.get("is_active")]
+    pick = active[0] if active else matches[0]
+
+    return int(pick["id"]), pick["full_name"]
+
+
+@st.cache_data(ttl=60 * 15, show_spinner=False)
+def fetch_last_games(player_id: int, season: str, n_games: int = 10) -> pd.DataFrame:
+    """
+    Trae game logs y devuelve DataFrame con últimos N juegos.
+    """
+    gl = playergamelog.PlayerGameLog(player_id=player_id, season=season)
+    df = gl.get_data_frames()[0]
+
+    # Ordenar por fecha (GAME_DATE suele venir como string)
+    # Ej: "FEB 25, 2026"
+    if "GAME_DATE" in df.columns:
+        try:
+            df["GAME_DATE_DT"] = pd.to_datetime(df["GAME_DATE"])
+        except Exception:
+            df["GAME_DATE_DT"] = pd.to_datetime(df["GAME_DATE"], errors="coerce")
+        df = df.sort_values("GAME_DATE_DT", ascending=False)
+
+    return df.head(n_games).reset_index(drop=True)
+
+
+def current_season_guess() -> str:
+    """
+    Devuelve temporada NBA tipo '2025-26' según la fecha actual.
+    """
+    now = datetime.now()
+    y = now.year
+    # NBA season suele empezar en Oct
+    if now.month >= 10:
+        return f"{y}-{str(y+1)[-2:]}"
+    else:
+        return f"{y-1}-{str(y)[-2:]}"
+
+
+def compute_stat_series(df: pd.DataFrame, stat_key: str) -> pd.Series:
+    """
+    Devuelve una serie con el stat elegido.
+    """
+    if stat_key == "PRA":
+        return df["PTS"].astype(float) + df["REB"].astype(float) + df["AST"].astype(float)
+    col = STAT_MAP[stat_key][0]
+    return df[col].astype(float)
+
+
+def over_count_last_n(values: pd.Series, line: float, direction: str, n: int = 5) -> int:
+    last_n = values.head(n)
+    if direction == "MORE":
+        return int((last_n > line).sum())
+    else:
+        return int((last_n < line).sum())
+
+
+def estimate_minutes_from_logs(df: pd.DataFrame) -> float:
+    """
+    MIN puede venir como '36' o '36:12'. Convertimos a minutos float.
+    """
+    if "MIN" not in df.columns:
+        return 30.0
+
+    def parse_min(x):
+        if pd.isna(x):
+            return None
+        s = str(x)
+        if ":" in s:
+            mm, ss = s.split(":")
+            try:
+                return float(mm) + (float(ss) / 60.0)
+            except Exception:
+                return None
+        try:
+            return float(s)
+        except Exception:
+            return None
+
+    mins = df["MIN"].apply(parse_min).dropna()
+    if mins.empty:
+        return 30.0
+    return float(mins.head(10).mean())
+
+
+def pickscore_model(avg10: float, over5: int, minutes: float, role: str, blowout: str, direction: str) -> float:
+    """
+    Modelo simple (pero útil):
+    - base arranca 50
+    - edge: qué tanto avg10 se separa de la línea (lo calculamos aparte)
+    - hits: over5 (0-5) -> +0..+25
+    - minutes: más minutos -> más chance (cap)
+    - role bonus
+    - blowout penalty
+    """
+    # Estos pesos los puedes tunear luego
+    hits_score = (over5 / 5.0) * 25.0        # 0..25
+    minutes_score = clamp((minutes - 24) * 1.0, 0, 18)  # 0..18 aprox
+
+    role_bonus = 0
+    if role == "Estrella":
+        role_bonus = 10
+    elif role == "Titular normal":
+        role_bonus = 5
+    else:
+        role_bonus = 0
+
+    blow_penalty = 0
+    if blowout == "Medio":
+        blow_penalty = -5
+    elif blowout == "Alto":
+        blow_penalty = -10
+
+    # Dirección: MORE suele ser un poco más “estable” en ciertas stats
+    dir_bonus = 2 if direction == "MORE" else 0
+
+    score = 50 + hits_score + minutes_score + role_bonus + blow_penalty + dir_bonus
+    return float(clamp(score, 0, 100))
+
+
+# ---------------------------
+# Inputs
+# ---------------------------
 st.subheader("1) Información del Pick")
 
 c1, c2 = st.columns(2)
 
 with c1:
-    player = st.text_input("Jugador")
-    stat = st.selectbox("Stat", ["Points", "Assists", "Rebounds", "PRA"])
+    player_name = st.text_input("Jugador (Nombre)", placeholder="Ej: Jalen Brunson")
+    stat = st.selectbox("Stat", ["Points", "Rebounds", "Assists", "PRA"])
 
 with c2:
-    line = st.number_input("Línea", value=0.0, step=0.5)
+    line = st.number_input("Línea", min_value=0.0, value=0.0, step=0.5)
     direction = st.selectbox("Dirección", ["MORE", "LESS"])
 
-st.subheader("2) Datos Manuales")
+st.subheader("2) Datos Automáticos + Ajustes")
 
-avg10 = st.number_input("Promedio últimos 10 juegos", value=0.0, step=0.1)
-
-over5 = st.slider("Veces que pasó la línea en últimos 5", 0, 5, 0)
-
-minutes = st.number_input("Minutos esperados", value=30)
+season = st.text_input("Temporada (opcional)", value=current_season_guess(), help="Ej: 2025-26. Déjalo así si no sabes.")
+n_games = st.slider("Juegos para promedio (últimos N)", 5, 15, 10)
 
 role = st.selectbox("Rol del jugador", ["Estrella", "Titular normal", "Jugador de rol"])
 blowout = st.selectbox("Riesgo de blowout", ["Bajo", "Medio", "Alto"])
 
-if line > 0:
 
-    edge = (avg10 - line) if direction == "MORE" else (line - avg10)
-
-    edge_score = clamp((edge / max(1, line)) * 50 + 50, 0, 100)
-    hits_score = (over5 / 5) * 100
-    minutes_score = clamp((minutes - 20) * 3, 0, 100)
-
-    role_bonus = 15 if role == "Estrella" else 8 if role == "Titular normal" else 0
-    blow_penalty = 0 if blowout == "Bajo" else 8 if blowout == "Medio" else 15
-
-    score = clamp(
-        0.4 * edge_score +
-        0.3 * hits_score +
-        0.2 * minutes_score +
-        role_bonus -
-        blow_penalty,
-        0,
-        100
-    )
-
-    probability = clamp(0.45 + (score * 0.003), 0.45, 0.80)
-
-    st.divider()
-    st.subheader("Resultado")
-
-    st.metric("PickScore (0-100)", round(score, 1))
-    st.metric("Probabilidad estimada", f"{round(probability*100,1)}%")
-
-    if score >= 80:
-        st.success("🔥 PICK PREMIUM")
-    elif score >= 65:
-        st.info("✅ PICK BUENO")
-    elif score >= 55:
-        st.warning("⚠️ SOLO FLEX")
-    else:
-        st.error("❌ EVITAR")
+# ---------------------------
+# Fetch + Calculate
+# ---------------------------
 st.divider()
+st.subheader("Resultado")
 
-st.subheader("3) Predicción PickScore")
+if not player_name or line <= 0:
+    st.info("Escribe el nombre del jugador y una línea (> 0) para calcular.")
+    st.stop()
 
-if player:
-    base = line
+with st.spinner("Buscando jugador y trayendo últimos juegos..."):
+    pid, full_name = find_player_id_by_name(player_name)
 
-    # Modelo simple inicial
-    tendencia = base * 0.15
-    confianza = clamp(50 + tendencia, 0, 100)
+if not pid:
+    st.error("No encontré ese jugador. Prueba con nombre + apellido (ej: 'Jalen Brunson').")
+    st.stop()
 
-    st.metric("Confianza del Pick (%)", round(confianza, 2))
+try:
+    df = fetch_last_games(pid, season=season, n_games=max(n_games, 10))
+except Exception as e:
+    st.error("Falló la consulta a la NBA API. A veces pasa por rate limit. Intenta recargar en 30s.")
+    st.stop()
 
-    if confianza >= 65:
-        st.success("🔥 Pick fuerte")
-    elif confianza >= 50:
-        st.warning("⚠️ Pick medio")
-    else:
-        st.error("❌ Pick débil")
-st.divider()
+if df.empty:
+    st.error("No hay game logs para ese jugador/temporada.")
+    st.stop()
 
-st.subheader("3) Análisis PickScore")
+values = compute_stat_series(df, stat_key=stat)
 
-if player and line > 0:
-        # --- Modelo (versión 2) basado en tus inputs manuales ---
-    # Inputs que ya tienes arriba:
-    # avg10, over5, minutes, role, blowout, direction, line
+avg10 = float(values.head(n_games).mean())
+over5 = int(over_count_last_n(values, line=line, direction=direction, n=5))
+minutes_est = float(estimate_minutes_from_logs(df))
 
-    # 1) Base por desempeño reciente (promedio vs línea)
-    #    Si el promedio está por encima de la línea, suma.
-    base = 50 + ((avg10 - line) * 2.5)
+# Edge: qué tan lejos está el promedio de la línea (normalizado)
+# Nota: lo usamos solo para mostrarte info y un micro ajuste visual
+edge = avg10 - line
+edge_norm = clamp((abs(edge) / max(1.0, line)) * 100.0, 0, 30)  # 0..30
 
-    # 2) Consistencia: cuántas veces pasó la línea en últimos 5 (0-5)
-    base += (over5 * 5)
+score = pickscore_model(avg10=avg10, over5=over5, minutes=minutes_est, role=role, blowout=blowout, direction=direction)
 
-    # 3) Minutos esperados: más minutos = más chance
-    #    Normalizamos alrededor de 30 min
-    base += (minutes - 30) * 0.8
+# Probabilidad estimada simple basada en score (puedes tunear)
+prob = clamp(50 + (score - 50) * 0.35, 0, 100)
 
-    # 4) Rol del jugador
-    if role == "Estrella":
-        base += 6
-    elif role == "Titular":
-        base += 3
-    else:  # "Banca"
-        base -= 2
+# UI metrics
+st.write(f"**Jugador detectado:** {full_name}")
+st.metric("PickScore (0-100)", round(score, 1))
+st.metric("Probabilidad estimada", f"{round(prob, 1)}%")
 
-    # 5) Riesgo de blowout
-    if blowout == "Alto":
-        base -= 6
-    elif blowout == "Medio":
-        base -= 3
-    else:  # "Bajo"
-        base += 1
+# Decision label
+if score >= 70:
+    st.success("✅ PICK BUENO")
+elif score >= 60:
+    st.warning("⚠️ SOLO FLEX")
+else:
+    st.error("❌ EVITAR")
 
-    # 6) Dirección del pick
-    #    MORE = queremos que suba la probabilidad si base está alto
-    #    LESS = invertimos la lógica (si base es alto, menos favorable)
-    if direction == "LESS":
-        base = 100 - base
+# Debug / Breakdown
+with st.expander("Ver desglose y últimos juegos"):
+    st.write(f"**Stat:** {STAT_MAP[stat][1]} | **Línea:** {line} | **Dirección:** {direction}")
+    st.write(f"**Promedio últimos {n_games}:** {round(avg10, 2)}")
+    st.write(f"**Hits últimos 5:** {over5}/5")
+    st.write(f"**Minutos estimados:** {round(minutes_est, 1)}")
+    st.write(f"**Edge (avg - line):** {round(edge, 2)} (normalizado {round(edge_norm, 1)})")
 
-    # 7) Clamp final 0-100
-    score = clamp(base, 0, 100)
-
-    st.metric("Confianza del Pick (%)", round(score, 2))
-
-    # Etiqueta final
-    if score >= 65:
-        st.success("✅ PICK BUENO")
-    elif score >= 50:
-        st.warning("⚠️ Pick medio")
-    else:
-        st.error("❌ EVITAR")
-    
+    show = df.copy()
+    show["STAT_SELECTED"] = values
+    cols = [c for c in ["GAME_DATE", "MATCHUP", "MIN", "PTS", "REB", "AST", "STAT_SELECTED"] if c in show.columns]
+    st.dataframe(show[cols].head(10), use_container_width=True)
