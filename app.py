@@ -85,3 +85,27 @@ if player:
         st.warning("⚠️ Pick medio")
     else:
         st.error("❌ Pick débil")
+st.divider()
+
+st.subheader("3) Análisis PickScore")
+
+if player and line > 0:
+    
+    # Modelo simple inicial
+    ajuste = line * 0.12
+    
+    if direction == "MORE":
+        score = 50 + ajuste
+    else:
+        score = 50 - ajuste
+
+    score = clamp(score, 0, 100)
+
+    st.metric("Confianza del Pick (%)", round(score, 1))
+
+    if score >= 65:
+        st.success("🔥 Pick fuerte")
+    elif score >= 50:
+        st.warning("⚠️ Pick medio")
+    else:
+        st.error("❌ Pick débil")
