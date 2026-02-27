@@ -90,22 +90,53 @@ st.divider()
 st.subheader("3) Análisis PickScore")
 
 if player and line > 0:
-    
-    # Modelo simple inicial
-    ajuste = line * 0.12
-    
-    if direction == "MORE":
-        score = 50 + ajuste
-    else:
-        score = 50 - ajuste
+        # --- Modelo (versión 2) basado en tus inputs manuales ---
+    # Inputs que ya tienes arriba:
+    # avg10, over5, minutes, role, blowout, direction, line
 
-    score = clamp(score, 0, 100)
+    # 1) Base por desempeño reciente (promedio vs línea)
+    #    Si el promedio está por encima de la línea, suma.
+    base = 50 + ((avg10 - line) * 2.5)
 
-    st.metric("Confianza del Pick (%)", round(score, 1))
+    # 2) Consistencia: cuántas veces pasó la línea en últimos 5 (0-5)
+    base += (over5 * 5)
 
+    # 3) Minutos esperados: más minutos = más chance
+    #    Normalizamos alrededor de 30 min
+    base += (minutes - 30) * 0.8
+
+    # 4) Rol del jugador
+    if role == "Estrella":
+        base += 6
+    elif role == "Titular":
+        base += 3
+    else:  # "Banca"
+        base -= 2
+
+    # 5) Riesgo de blowout
+    if blowout == "Alto":
+        base -= 6
+    elif blowout == "Medio":
+        base -= 3
+    else:  # "Bajo"
+        base += 1
+
+    # 6) Dirección del pick
+    #    MORE = queremos que suba la probabilidad si base está alto
+    #    LESS = invertimos la lógica (si base es alto, menos favorable)
+    if direction == "LESS":
+        base = 100 - base
+
+    # 7) Clamp final 0-100
+    score = clamp(base, 0, 100)
+
+    st.metric("Confianza del Pick (%)", round(score, 2))
+
+    # Etiqueta final
     if score >= 65:
-        st.success("🔥 Pick fuerte")
+        st.success("✅ PICK BUENO")
     elif score >= 50:
         st.warning("⚠️ Pick medio")
     else:
-        st.error("❌ Pick débil")
+        st.error("❌ EVITAR")
+    
