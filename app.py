@@ -33,9 +33,10 @@ def inject_prizepicks_style():
 # ---------------------------
 st.set_page_config(page_title="PickScore", layout="centered")
 inject_prizepicks_style()
-st.title("PickScore — Sistema Personal")
-st.caption("Herramienta de apoyo. No garantiza ganancias.")
-
+st.markdown("<h1 style='margin-bottom:6px;'>PickScore</h1>", unsafe_allow_html=True)
+st.markdown("<div class='muted'>Sistema Personal • Board</div>", unsafe_allow_html=True)
+st.markdown("<div class='muted' style='margin-top:6px;'>Herramienta de apoyo. No garantiza ganancias.</div>", unsafe_allow_html=True)
+st.markdown("<div class='card'>", unsafe_allow_html=True)
 
 # ---------------------------
 # Helpers
@@ -226,6 +227,7 @@ blowout = st.selectbox("Riesgo de blowout", ["Bajo", "Medio", "Alto"])
 # ---------------------------
 # Fetch + Calculate
 # ---------------------------
+st.markdown("</div>", unsafe_allow_html=True)
 st.divider()
 st.subheader("Resultado")
 
