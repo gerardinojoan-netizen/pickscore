@@ -213,7 +213,22 @@ with c1:
 
 with c2:
     line = st.number_input("Línea", min_value=0.0, value=0.0, step=0.5)
-    direction = st.selectbox("Dirección", ["MORE", "LESS"])
+    st.markdown("<label style='font-weight:600;'>Dirección</label>", unsafe_allow_html=True)
+
+col1, col2 = st.columns(2)
+
+with col1:
+    more_clicked = st.button("⬆ MORE", use_container_width=True)
+
+with col2:
+    less_clicked = st.button("⬇ LESS", use_container_width=True)
+
+if more_clicked:
+    direction = "MORE"
+elif less_clicked:
+    direction = "LESS"
+else:
+    direction = "MORE"
 
 st.subheader("2) Datos Automáticos + Ajustes")
 
