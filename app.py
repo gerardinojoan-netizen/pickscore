@@ -5,7 +5,29 @@ from datetime import datetime
 from nba_api.stats.static import players as nba_players
 from nba_api.stats.endpoints import playergamelog
 
+def inject_prizepicks_style():
+    st.markdown("""
+    <style>
+    .stApp {
+      background: radial-gradient(1200px 600px at 15% 5%, rgba(168,85,247,.20), transparent 45%),
+                  radial-gradient(900px 500px at 85% 10%, rgba(34,197,94,.14), transparent 40%),
+                  linear-gradient(180deg, #0B0F17 0%, #070A10 100%);
+      color: #E9EEF6;
+    }
+    .block-container { padding-top: 1.2rem; padding-bottom: 5.5rem; max-width: 980px; }
+    header, footer { visibility: hidden; }
+    #MainMenu { visibility: hidden; }
 
+    .card {
+      background: rgba(255,255,255,.06);
+      border: 1px solid rgba(255,255,255,.10);
+      border-radius: 18px;
+      padding: 1rem;
+      box-shadow: 0 10px 30px rgba(0,0,0,.20);
+      backdrop-filter: blur(10px);
+    }
+    </style>
+    """, unsafe_allow_html=True)
 # ---------------------------
 # UI
 # ---------------------------
