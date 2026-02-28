@@ -32,6 +32,7 @@ def inject_prizepicks_style():
 # UI
 # ---------------------------
 st.set_page_config(page_title="PickScore", layout="centered")
+inject_prizepicks_style()
 st.title("PickScore — Sistema Personal")
 st.caption("Herramienta de apoyo. No garantiza ganancias.")
 
