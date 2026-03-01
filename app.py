@@ -26,23 +26,37 @@ def inject_prizepicks_style():
       box-shadow: 0 10px 30px rgba(0,0,0,.20);
       backdrop-filter: blur(10px);
     }
-    /* --- BOTONES MORE / LESS --- */
+
+
+/* ===== BOTONES MORE / LESS PRO ===== */
 
 button[kind="secondary"] {
-    background: rgba(255,255,255,0.08) !important;
-    border: 1px solid rgba(255,255,255,0.25) !important;
-    color: #E9EEF6 !important;
-    font-size: 18px !important;
-    font-weight: 800 !important;
-    border-radius: 14px !important;
-    height: 55px !important;
-    transition: all 0.2s ease-in-out;
+    background: linear-gradient(135deg, rgba(255,255,255,0.15), rgba(255,255,255,0.05)) !important;
+    border: 1px solid rgba(255,255,255,0.45) !important;
+    color: #FFFFFF !important;
+
+    font-size: 22px !important;
+    font-weight: 900 !important;
+    letter-spacing: 1px;
+
+    border-radius: 18px !important;
+    height: 65px !important;
+
+    box-shadow: 0 8px 22px rgba(0,0,0,0.45);
+    backdrop-filter: blur(14px);
+
+    transition: all 0.25s ease-in-out;
 }
 
 button[kind="secondary"]:hover {
-    background: rgba(255,255,255,0.18) !important;
-    border: 1px solid rgba(255,255,255,0.45) !important;
-    transform: scale(1.03);
+    background: linear-gradient(135deg, rgba(255,255,255,0.30), rgba(255,255,255,0.12)) !important;
+    border: 1px solid rgba(255,255,255,0.7) !important;
+    transform: scale(1.06);
+}
+
+button[kind="secondary"] p {
+    font-size: 22px !important;
+    font-weight: 900 !important;
 }
     </style>
     """, unsafe_allow_html=True)
