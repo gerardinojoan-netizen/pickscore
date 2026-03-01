@@ -31,7 +31,12 @@ def inject_prizepicks_style():
 # ---------------------------
 # UI
 # ---------------------------
-st.set_page_config(page_title="PickScore", layout="centered")
+st.set_page_config(
+    page_title="PickScore",
+    page_icon="📊",
+    layout="centered",
+    initial_sidebar_state="collapsed"
+)
 inject_prizepicks_style()
 st.markdown("<h1 style='margin-bottom:6px;'>PickScore</h1>", unsafe_allow_html=True)
 st.markdown("<div class='muted'>Sistema Personal • Board</div>", unsafe_allow_html=True)
