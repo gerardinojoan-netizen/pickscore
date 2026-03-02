@@ -268,7 +268,7 @@ def compute_pickscore(
         recommendation = "PASS"
         rec_mode = "NO JUGAR"
 
-return pick_score, hit_rate, volatility, confidence, recommendation, rec_mode
+    return pick_score, hit_rate, volatility, confidence, recommendation, rec_mode
 
 
 # =========================
