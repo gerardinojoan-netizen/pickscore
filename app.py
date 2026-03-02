@@ -251,16 +251,24 @@ def compute_pickscore(
 
     # Recomendación PRO (simple y clara)
     # PLAY si score >= 60 y hit_rate >= 0.60 y volatilidad no muy alta
-    if pick_score >= 60 and hit_rate >= 0.60 and volatility <= 6.5:
-        recommendation = "PLAY"
+        # Confianza
+    # base en score + castigo por volatilidad
+    confidence = int(clamp(pick_score - (volatility * 3), 0, 100))
+
+    # =========================
+    # Recomendación PRO (3 niveles)
+    # =========================
+    if pick_score >= 70 and confidence >= 60 and volatility <= 3.0:
+        recommendation = "STRONG"
+        rec_mode = "JUGAR (Power)"
+    elif pick_score >= 60 and confidence >= 50 and volatility <= 4.0:
+        recommendation = "PLAYABLE"
+        rec_mode = "FLEX (con cuidado)"
     else:
         recommendation = "PASS"
+        rec_mode = "NO JUGAR"
 
-    # Confianza
-    # base en score + castigo por volatilidad
-    confidence = int(clamp(pick_score - (volatility * 2.0), 0, 100))
-
-    return pick_score, hit_rate, volatility, recommendation, confidence
+return pick_score, hit_rate, volatility, confidence, recommendation, rec_mode
 
 
 # =========================
