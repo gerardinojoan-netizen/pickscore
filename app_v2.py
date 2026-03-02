@@ -262,7 +262,7 @@ if st.button("📊 Analizar", use_container_width=True, type="secondary"):
             "direction": direction,
             "season": season,
             "n_games": n_games,
-            "line_used": round(line, 2),
+            "line_used": round(line_manual, 2),
             "line_auto": round(suggested_line, 2),
             "hit_rate": round(hit_rate, 3),
             "pick_score": round(pick_score, 1),
