@@ -222,7 +222,7 @@ def compute_pickscore(
         series = df[stat_key] if stat_key in df.columns else None
 
     if series is None:
-    return 0.0, 0.0, 0.0, "PASS", 0, "NO JUGAR"
+       return 0.0, 0.0, 0.0, "PASS", 0, "NO JUGAR"
 
     series = series.astype(float)
     volatility = float(series.std(ddof=0)) if len(series) else 0.0
