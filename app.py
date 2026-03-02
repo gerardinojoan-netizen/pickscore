@@ -290,15 +290,17 @@ def pickscore_model(avg10: float, over5: int, minutes: float, role: str, blowout
 c1, c2 = st.columns(2)
 
 with c1:
-   
     player_list = nba_players.get_players()
-player_names = [p["full_name"] for p in player_list if p["is_active"]]
+    player_names = [p["full_name"] for p in player_list if p["is_active"]]
 
-player_name = st.selectbox(
-    "Jugador",
-    sorted(player_names)
+    player_name = st.selectbox(
+        "Jugador",
+        sorted(player_names)
     )
-    stat = st.selectbox("Stat", ["Points", "Rebounds", "Assists", "PRA"]
+
+    stat = st.selectbox(
+        "Stat",
+        ["Points", "Rebounds", "Assists", "PRA"]
     )
 
 with c2:
