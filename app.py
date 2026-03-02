@@ -297,7 +297,9 @@ player_names = [p["full_name"] for p in player_list if p["is_active"]]
 player_name = st.selectbox(
     "Jugador",
     sorted(player_names)
-    stat = st.selectbox("Stat", ["Points", "Rebounds", "Assists", "PRA"])
+    )
+    stat = st.selectbox("Stat", ["Points", "Rebounds", "Assists", "PRA"]
+    )
 
 with c2:
     line = st.number_input("Línea", min_value=0.0, value=0.0, step=0.5)
