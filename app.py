@@ -74,7 +74,7 @@ st.markdown("<h1 style='margin-bottom:6px;'>PickScore</h1>", unsafe_allow_html=T
 st.markdown("<div class='muted'>Sistema Personal • Board</div>", unsafe_allow_html=True)
 st.markdown("<div class='muted' style='margin-top:6px;'>Herramienta de apoyo. No garantiza ganancias.</div>", unsafe_allow_html=True)
 st.markdown("<div class='card'>", unsafe_allow_html=True)
- 
+
 # ==============================
 # HISTORIAL DE PICKS
 # ==============================
