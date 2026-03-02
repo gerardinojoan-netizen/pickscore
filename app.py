@@ -286,12 +286,18 @@ def pickscore_model(avg10: float, over5: int, minutes: float, role: str, blowout
 # ---------------------------
 # Inputs
 # ---------------------------
-st.subheader("1) Información del Pick")
 
 c1, c2 = st.columns(2)
 
 with c1:
-    player_name = st.text_input("Jugador (Nombre)", placeholder="Ej: Jalen Brunson")
+    from nba_api.stats.static import players
+
+player_list = players.get_players()
+player_names = [p["full_name"] for p in player_list if p["is_active"]]
+
+player_name = st.selectbox(
+    "Jugador",
+    sorted(player_names)
     stat = st.selectbox("Stat", ["Points", "Rebounds", "Assists", "PRA"])
 
 with c2:
