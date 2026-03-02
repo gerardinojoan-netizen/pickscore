@@ -291,7 +291,7 @@ c1, c2 = st.columns(2)
 
 with c1:
    
-player_list = nba_players.get_players()
+    player_list = nba_players.get_players()
 player_names = [p["full_name"] for p in player_list if p["is_active"]]
 
 player_name = st.selectbox(
