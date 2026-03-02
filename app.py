@@ -162,9 +162,23 @@ def find_player_id_by_name(name: str):
     return int(pick["id"]), pick["full_name"]
 
 @st.cache_data(ttl=60 * 15, show_spinner=False)
-def fetch_last_games(player_id: int, season: str, n_games: int) -> pd.DataFrame:
-    gl = playergamelog.PlayerGameLog(player_id=player_id, season=season)
-    df = gl.get_data_frames()[0]
+def fetch_last_games(player_id: int, season: str, n_games: int = 10) -> pd.DataFrame:
+    try:
+        gl = playergamelog.PlayerGameLog(
+            player_id=player_id,
+            season=season,
+            season_type_all_star="Regular Season"
+        )
+
+        dfs = gl.get_data_frames()
+
+        if not dfs or dfs[0] is None or dfs[0].empty:
+            return pd.DataFrame()
+
+        df = dfs[0].copy()
+
+    except Exception:
+        return pd.DataFrame()
 
     # ordenar por fecha
     if "GAME_DATE" in df.columns:
@@ -172,6 +186,7 @@ def fetch_last_games(player_id: int, season: str, n_games: int) -> pd.DataFrame:
             df["GAME_DATE_DT"] = pd.to_datetime(df["GAME_DATE"])
         except Exception:
             df["GAME_DATE_DT"] = pd.to_datetime(df["GAME_DATE"], errors="coerce")
+
         df = df.sort_values("GAME_DATE_DT", ascending=False)
 
     return df.head(n_games).reset_index(drop=True)
