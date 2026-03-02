@@ -74,7 +74,53 @@ st.markdown("<h1 style='margin-bottom:6px;'>PickScore</h1>", unsafe_allow_html=T
 st.markdown("<div class='muted'>Sistema Personal • Board</div>", unsafe_allow_html=True)
 st.markdown("<div class='muted' style='margin-top:6px;'>Herramienta de apoyo. No garantiza ganancias.</div>", unsafe_allow_html=True)
 st.markdown("<div class='card'>", unsafe_allow_html=True)
+ 
+# ==============================
+# HISTORIAL DE PICKS
+# ==============================
 
+import os, json
+from datetime import datetime
+
+HISTORY_FILE = "pick_history.json"
+
+def load_history():
+    if os.path.exists(HISTORY_FILE):
+        try:
+            with open(HISTORY_FILE, "r", encoding="utf-8") as f:
+                return json.load(f)
+        except:
+            return []
+    return []
+
+def save_history(items):
+    with open(HISTORY_FILE, "w", encoding="utf-8") as f:
+        json.dump(items, f, ensure_ascii=False, indent=2)
+
+if "history" not in st.session_state:
+    st.session_state.history = load_history()
+
+st.markdown("### 🧾 Historial")
+
+alias = st.text_input(
+    "Tu alias (para guardar tus picks)",
+    value="Joan"
+)
+
+hist = st.session_state.history
+
+if alias.strip():
+    hist_view = [
+        h for h in hist
+        if h.get("alias","").lower().strip() == alias.lower().strip()
+    ]
+else:
+    hist_view = hist
+
+if hist_view:
+    st.dataframe(hist_view[::-1], use_container_width=True)
+else:
+    st.caption("Todavía no hay picks guardados.")
 # ---------------------------
 # Helpers
 # ---------------------------
