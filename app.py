@@ -304,7 +304,7 @@ with c1:
     )
 
 with c2:
-    line = st.number_input("Línea", min_value=0.0, value=0.0, step=0.5)
+   
     st.markdown("<label style='font-weight:600;'>Dirección</label>", unsafe_allow_html=True)
 
 col1, col2 = st.columns(2)
